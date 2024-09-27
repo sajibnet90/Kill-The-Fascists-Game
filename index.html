@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kill The Fascists</title>
+    <style>
+        body {
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        #gameArea {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            margin: 0 auto;
+            border: 2px solid #000;
+            background-color: white;
+        }
+        .target {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            z-index: 1;
+        }
+        #shoe {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            z-index: 2;
+        }
+        #message {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        #restartButton {
+            display: none;
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Kill The Fascists</h1>
+    <p id="score">Score: 0</p>
+    <p id="message"></p>
+    <div id="gameArea">
+        <img src="shoe.png" id="shoe"/>
+    </div>
+    <button id="restartButton">Restart Game</button>
+
+    <!-- Sound effect for hit -->
+    <audio id="hitSound" src="hit-sound.mp3"></audio>
+    <!-- Sound effect for kill -->
+    <audio id="killSound" src="kill-sound.mp3"></audio>
+
+    <script>
+        let shoe = document.getElementById('shoe');
+        let gameArea = document.getElementById('gameArea');
+        let scoreDisplay = document.getElementById('score');
+        let messageDisplay = document.getElementById('message');
+        let restartButton = document.getElementById('restartButton');
+        let hitSound = document.getElementById('hitSound');
+        let killSound = document.getElementById('killSound');  // Kill sound
+        let totalScore = 0;
+        let hitCounts = {};
+        let isShoeThrown = false;
+        let shoeX = 50, shoeY = 350;
+
+        const initialTargets = [
+            { id: 'Kader', src: 'picture1.png', top: '50px', left: '200px' },
+            { id: 'Hasina', src: 'picture2.png', top: '150px', left: '400px' },
+            { id: 'Mujib', src: 'picture3.png', top: '250px', left: '100px' }
+        ];
+
+        function initializeGame() {
+            totalScore = 0;
+            scoreDisplay.innerText = 'Score: 0';
+            messageDisplay.innerText = '';
+            restartButton.style.display = 'none';
+            hitCounts = {};
+            isShoeThrown = false;
+
+            shoeX = 50;
+            shoeY = 350;
+            shoe.style.left = shoeX + 'px';
+            shoe.style.top = shoeY + 'px';
+
+            gameArea.querySelectorAll('.target').forEach(target => target.remove());
+
+            initialTargets.forEach(targetInfo => {
+                let target = document.createElement('img');
+                target.src = targetInfo.src;
+                target.className = 'target';
+                target.id = targetInfo.id;
+                target.style.top = targetInfo.top;
+                target.style.left = targetInfo.left;
+                gameArea.appendChild(target);
+                hitCounts[target.id] = 0;
+            });
+        }
+
+        initializeGame();
+
+        gameArea.addEventListener('click', function(event) {
+            if (!isShoeThrown) {
+                let targetX = event.clientX - gameArea.offsetLeft - shoe.offsetWidth / 2;
+                let targetY = event.clientY - gameArea.offsetTop - shoe.offsetHeight / 2;
+                throwShoe(targetX, targetY);
+            }
+        });
+
+        function throwShoe(targetX, targetY) {
+            isShoeThrown = true;
+            let shoeInterval = setInterval(function() {
+                let distanceX = targetX - shoeX;
+                let distanceY = targetY - shoeY;
+
+                shoeX += distanceX * 0.1;
+                shoeY += distanceY * 0.1;
+
+                shoe.style.left = shoeX + 'px';
+                shoe.style.top = shoeY + 'px';
+
+                if (Math.abs(distanceX) < 5 && Math.abs(distanceY) < 5) {
+                    clearInterval(shoeInterval);
+                    isShoeThrown = false;
+                    checkHit(targetX, targetY);
+                    resetShoe();
+                }
+            }, 30);
+        }
+
+        function resetShoe() {
+            setTimeout(() => {
+                shoeX = 50;
+                shoeY = 350;
+                shoe.style.left = shoeX + 'px';
+                shoe.style.top = shoeY + 'px';
+            }, 1000);
+        }
+
+        function checkHit(x, y) {
+            document.querySelectorAll('.target').forEach(target => {
+                let rect = target.getBoundingClientRect();
+                if (x > rect.left - gameArea.offsetLeft && x < rect.right - gameArea.offsetLeft &&
+                    y > rect.top - gameArea.offsetTop && y < rect.bottom - gameArea.offsetTop) {
+                    
+                    hitSound.play();
+                    hitCounts[target.id]++;
+                    
+                    let hitsLeft = 3 - hitCounts[target.id];
+
+                    if (hitsLeft === 0) {
+                        killSound.play();  // Play kill sound when target is killed
+                        target.remove();
+                        totalScore++;
+                        scoreDisplay.innerText = 'Score: ' + totalScore;
+                        messageDisplay.style.color = 'red';
+                        messageDisplay.innerText = 'You killed ' + target.id + '!';
+                        checkGameOver();
+                    } else {
+                        messageDisplay.style.color = 'green';
+                        messageDisplay.innerText = 'You Hit ' + target.id + '! Hit ' + hitsLeft + ' more time(s) to kill '+ target.id;
+                    }
+                }
+            });
+        }
+
+        function checkGameOver() {
+            let remainingTargets = document.querySelectorAll('.target');
+            if (remainingTargets.length === 0) {
+                messageDisplay.innerText = 'Game Over! Final Score: ' + totalScore;
+                restartButton.style.display = 'block';
+            }
+        }
+
+        restartButton.addEventListener('click', function() {
+            initializeGame();
+        });
+    </script>
+
+</body>
+</html>
